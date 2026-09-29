@@ -3,6 +3,10 @@
 # Caso d'uso: verificare lo stile del codice con ESLint e Prettier.
 # Due job in parallelo: sono verifiche indipendenti e così, se una fallisce,
 # si vede subito quale.
+#
+# Dalla lezione 10 i due job non sono più scritti qui: richiamano il reusable
+# workflow 10-node-check.yml. Confronta con la versione precedente nella
+# storia git: `git log -p .github/workflows/04-lint.yml`.
 
 name: 04 - Lint e formattazione
 
@@ -18,37 +22,17 @@ on:
 permissions:
   contents: read
 
-defaults:
-  run:
-    working-directory: app
-
 jobs:
+  # ESLint: il problem matcher di setup-node trasforma gli errori in
+  # annotazioni sulle righe del file, visibili nella tab "Files changed".
   eslint:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-          cache-dependency-path: app/package-lock.json
-      - run: npm ci
-      # Il "problem matcher" di setup-node riconosce l'output di ESLint e
-      # trasforma ogni errore in un'annotazione sul file, visibile nella tab
-      # "Files changed" della PR.
-      - run: npm run lint
+    uses: ./.github/workflows/10-node-check.yml
+    with:
+      comando: lint
 
+  # `prettier --check` NON modifica i file: fallisce se qualcosa non è
+  # formattato. In CI si segnala, non si corregge.
   prettier:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-          cache-dependency-path: app/package-lock.json
-      - run: npm ci
-      # `--check` NON modifica i file: fallisce se qualcosa non è formattato.
-      # In CI non si formatta mai in automatico sul branch dell'autore senza
-      # un accordo esplicito; si segnala e basta.
-      - run: npm run format:check
+    uses: ./.github/workflows/10-node-check.yml
+    with:
+      comando: format:check

@@ -1,0 +1,45 @@
+# Lezione 10 - Composite action
+#
+# Una composite action raggruppa più step in uno solo, riusabile con `uses:`.
+# Differenze chiave rispetto a un reusable workflow:
+# - gira DENTRO il job del chiamante (stessa macchina, stessi file);
+# - non può definire job, runner o `permissions`;
+# - ogni step `run` DEVE dichiarare `shell:` (non eredita i `defaults`).
+#
+# Uso nello stesso repo (dopo il checkout!):
+#   - uses: ./.github/actions/setup-app
+# Uso da un altro repo:
+#   - uses: lorenzoscaioli-yellowtech/github-actions-lab/.github/actions/setup-app@v0.2.0
+
+name: Setup app Node
+description: Installa Node con cache npm e le dipendenze dell'app con npm ci
+
+inputs:
+  node-version:
+    description: Versione di Node da installare
+    required: false
+    default: "22"
+  working-directory:
+    description: Cartella che contiene package.json e package-lock.json
+    required: false
+    default: app
+
+outputs:
+  node-version:
+    description: Versione di Node effettivamente installata
+    value: ${{ steps.setup.outputs.node-version }}
+
+runs:
+  using: composite
+  steps:
+    - id: setup
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ inputs.node-version }}
+        cache: npm
+        cache-dependency-path: ${{ inputs.working-directory }}/package-lock.json
+
+    - name: Installo le dipendenze
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: npm ci

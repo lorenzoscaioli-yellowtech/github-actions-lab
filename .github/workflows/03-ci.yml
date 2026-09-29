@@ -10,10 +10,10 @@ on:
   workflow_dispatch:
   push:
     branches: [main]
-    paths: ["app/**", ".github/workflows/03-ci.yml"]
+    paths: ["app/**", ".github/workflows/03-ci.yml", ".github/actions/**"]
   pull_request:
     branches: [main]
-    paths: ["app/**", ".github/workflows/03-ci.yml"]
+    paths: ["app/**", ".github/workflows/03-ci.yml", ".github/actions/**"]
 
 # Permessi minimi del GITHUB_TOKEN: per testare basta leggere il repo.
 permissions:
@@ -34,19 +34,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # setup-node installa la versione richiesta e, con `cache`, salva e
-      # ripristina la cache di npm (chiave basata sul lockfile). Al secondo run
-      # l'installazione è molto più rapida.
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-          cache-dependency-path: app/package-lock.json
-
-      # `npm ci` (non `npm install`): installa ESATTAMENTE il lockfile e
-      # fallisce se package.json e lockfile non coincidono. È la scelta giusta
-      # in CI perché rende la build riproducibile.
-      - run: npm ci
+      # Composite action della lezione 10: contiene setup-node con cache npm
+      # (chiave basata sul lockfile) e `npm ci`. `npm ci` e non `npm install`:
+      # installa ESATTAMENTE il lockfile e fallisce se package.json e lockfile
+      # non coincidono, quindi la build è riproducibile.
+      - uses: ./.github/actions/setup-app
 
       # L'output viene anche salvato su file per l'artefatto e il riepilogo.
       # Nota: node:test senza terminale usa il reporter TAP; in package.json

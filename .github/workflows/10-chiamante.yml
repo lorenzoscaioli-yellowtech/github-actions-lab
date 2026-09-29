@@ -1,0 +1,49 @@
+# Lezione 10 - Chiamante del reusable workflow
+#
+# Tre job, tutti definiti altrove: questo file dice solo COSA eseguire.
+# Nella UI i job compaiono come "<job chiamante> / <job chiamato>",
+# per esempio "lint / check".
+
+name: 10 - Chiamante
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/10-*.yml"
+      - ".github/actions/**"
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    uses: ./.github/workflows/10-node-check.yml
+    with:
+      comando: lint
+
+  test:
+    uses: ./.github/workflows/10-node-check.yml
+    with:
+      comando: test
+      node-version: "24"
+
+  build:
+    uses: ./.github/workflows/10-node-check.yml
+    with:
+      comando: build
+      upload-artifact: true
+
+  # Un job normale che legge gli output dei reusable workflow.
+  riepilogo:
+    needs: [lint, test, build]
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          {
+            echo "## Output dei reusable workflow"
+            echo "- lint:  ${{ needs.lint.outputs.risultato }}"
+            echo "- test:  ${{ needs.test.outputs.risultato }}"
+            echo "- build: ${{ needs.build.outputs.risultato }}"
+          } | tee -a "$GITHUB_STEP_SUMMARY"

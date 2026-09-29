@@ -15,7 +15,7 @@ on:
   # Nota: sul piano gratuito Pages funziona solo su repo PUBBLICI.
   push:
     branches: [main]
-    paths: ["app/**", ".github/workflows/05-cd-pages.yml"]
+    paths: ["app/**", ".github/workflows/05-cd-pages.yml", ".github/actions/**"]
 
 # Il deploy su Pages richiede questi tre permessi al GITHUB_TOKEN.
 permissions:
@@ -37,12 +37,8 @@ jobs:
         working-directory: app
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-          cache-dependency-path: app/package-lock.json
-      - run: npm ci
+      # Composite action della lezione 10 (setup-node + cache + npm ci).
+      - uses: ./.github/actions/setup-app
       - run: npm run build
       # Artefatto speciale per Pages: un tar della cartella da pubblicare.
       - uses: actions/upload-pages-artifact@v3

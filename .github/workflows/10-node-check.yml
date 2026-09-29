@@ -1,0 +1,85 @@
+# Lezione 10 - Reusable workflow
+#
+# Un reusable workflow è un workflow intero (job, runner, permessi) che altri
+# workflow richiamano come se fosse un job:
+#
+#   jobs:
+#     lint:
+#       uses: ./.github/workflows/10-node-check.yml          # stesso repo
+#       uses: OWNER/REPO/.github/workflows/10-node-check.yml@v0.2.0  # altro repo
+#       with:
+#         comando: lint
+#
+# Si riconosce da `on: workflow_call`. Non ha `workflow_dispatch` apposta:
+# da solo non ha senso, si lancia tramite 10-chiamante.yml.
+
+name: 10 - Node check (reusable)
+
+on:
+  workflow_call:
+    # Gli input di workflow_call sono TIPIZZATI (string, number, boolean).
+    inputs:
+      comando:
+        description: Script npm da eseguire (test, lint, format:check, build)
+        type: string
+        required: true
+      node-version:
+        type: string
+        default: "22"
+      upload-artifact:
+        description: Se true, carica la cartella dist/ come artefatto
+        type: boolean
+        default: false
+    # Gli output di un reusable workflow vanno "promossi" da job a workflow.
+    outputs:
+      risultato:
+        description: Riga di riepilogo prodotta dal comando
+        value: ${{ jobs.check.outputs.risultato }}
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      risultato: ${{ steps.esegui.outputs.risultato }}
+    defaults:
+      run:
+        working-directory: app
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+
+      # ATTENZIONE: qui NON usiamo la composite `./.github/actions/setup-app`.
+      # In un reusable workflow `./` si riferisce al repo del CHIAMANTE (è
+      # quello che il checkout ha scaricato). Chiamato da un altro repo, il
+      # percorso non esisterebbe. Per questo gli step sono scritti per esteso.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ inputs.node-version }}
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+      - run: npm ci
+
+      - name: Eseguo npm run ${{ inputs.comando }}
+        id: esegui
+        env:
+          COMANDO: ${{ inputs.comando }}
+        run: |
+          npm run "$COMANDO" 2>&1 | tee output.txt
+          echo "risultato=npm run $COMANDO ok su Node $(node --version)" >> "$GITHUB_OUTPUT"
+
+      # Verifica del dubbio della lezione 02: in workflow_call il boolean è un
+      # vero booleano, quindi `== true` funziona e `== 'true'` no.
+      - name: Come arriva l'input boolean
+        run: |
+          echo "upload-artifact            = ${{ inputs.upload-artifact }}"
+          echo "upload-artifact == true    = ${{ inputs.upload-artifact == true }}"
+          echo "upload-artifact == 'true'  = ${{ inputs.upload-artifact == 'true' }}"
+
+      - if: inputs.upload-artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist-${{ inputs.comando }}
+          path: app/dist/
+          retention-days: 3
