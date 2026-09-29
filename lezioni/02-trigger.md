@@ -77,3 +77,6 @@ Due run il 29/09/2026: uno da `push` (commit iniziale) e uno manuale con
   partire nessun workflow (vedi commit successivo).
 - Ancora da provare: il trigger `pull_request` e il trigger su tag `v*`.
   Lo `schedule` del lunedì si vedrà da solo.
+- **Corretto dopo la lezione 11**: actionlint ha segnalato che titolo della
+  PR, messaggio del commit e `github.head_ref` erano inseriti direttamente
+  negli script (script injection). Ora passano da `env:`.

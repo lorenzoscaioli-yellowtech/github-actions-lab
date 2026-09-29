@@ -35,10 +35,16 @@ lint, release, automazione. Le successive coprono i meccanismi trasversali.
 | 05 | [CD su GitHub Pages](lezioni/05-cd-pages.md) | Build e deploy separati, `environment`, `concurrency`, permessi Pages | eseguita |
 | 06 | [Release](lezioni/06-release.md) | Trigger su tag, note generate, asset allegati, `gh` nei workflow | eseguita |
 | 07 | [Automazione](lezioni/07-automazione.md) | Schedule, commit da bot, segreti opzionali, notifica Slack | eseguita |
-| 08 | Matrici e job paralleli | `strategy.matrix`, `needs`, `fail-fast`, `continue-on-error` | da fare |
-| 09 | Segreti, variabili e environment | `secrets`, `vars`, environment con approvazione manuale | da fare |
-| 10 | Action riusabili | `composite action`, `reusable workflow` con `workflow_call` | da fare |
-| 11 | Sicurezza e buone pratiche | Permessi minimi, pin a SHA, Dependabot per le action, script injection | da fare |
+| 08 | [Matrici](lezioni/08-matrice.md) | `strategy.matrix`, `include`/`exclude`, `fail-fast`, `continue-on-error`, Windows e macOS | eseguita |
+| 09 | [Segreti, variabili, environment](lezioni/09-deploy-approvazione.md) | `vars` e `secrets` per ambiente, approvazione manuale, branch policy | in attesa di approvazione |
+| 10 | [Action riusabili](lezioni/10-action-riusabili.md) | Composite action, reusable workflow, uso da un altro repo del proprio account | eseguita |
+| 11 | [Sicurezza](lezioni/11-sicurezza.md) | Permessi minimi, pin a SHA, script injection, actionlint, Dependabot | eseguita |
+| 12 | [Check obbligatori sulle PR](lezioni/12-pr-gate.md) | Ruleset su main, job `gate` con `if: always()`, bypass admin | eseguita |
+| 13 | [Concurrency e timeout](lezioni/13-concurrency.md) | `cancel-in-progress`, gruppi per ref, `timeout-minutes` | eseguita |
+| 14 | [Debug](lezioni/14-debug.md) | Comandi di workflow, dump dei contesti, `rerun --debug`, `act` | eseguita (act da riprovare con Docker) |
+
+Fuori percorso, perché richiedono infrastruttura esterna: deploy su GHCR e
+via SSH, OIDC verso un cloud, runner self-hosted.
 
 ## Comandi utili
 
@@ -48,4 +54,6 @@ gh workflow run 01-hello-world.yml        # lancio manuale
 gh run list --workflow=01-hello-world.yml # esecuzioni recenti
 gh run watch                              # segue l'ultima esecuzione in tempo reale
 gh run view --log                         # log completo dell'ultima esecuzione
+gh run rerun <id> --debug                 # rilancia con i log di debug
+actionlint                                # lint di tutti i workflow, in locale
 ```
