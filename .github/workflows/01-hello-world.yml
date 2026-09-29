@@ -1,0 +1,105 @@
+# Lezione 01 - Hello world
+#
+# Il file YAML è il "programma": GitHub lo legge e lo esegue su una macchina
+# virtuale (runner) ogni volta che scatta uno degli eventi elencati in `on`.
+
+# `name` è il nome mostrato nella tab Actions. Se manca, GitHub usa il path del file.
+name: 01 - Hello world
+
+# `on` elenca gli eventi che avviano il workflow.
+on:
+  # Lancio manuale dalla UI (bottone "Run workflow") o con `gh workflow run`.
+  workflow_dispatch:
+  # Push sul branch main, ma SOLO se cambia questo file: così le altre lezioni
+  # non lo fanno ripartire ogni volta.
+  push:
+    branches: [main]
+    paths: [".github/workflows/01-hello-world.yml"]
+
+# Un workflow è fatto di job. I job girano IN PARALLELO su runner separati,
+# salvo dipendenze esplicite (`needs`). Ogni job è una macchina pulita.
+jobs:
+  saluta:
+    # Il runner: una VM Ubuntu fornita da GitHub. Esistono anche windows-latest
+    # e macos-latest, oppure runner self-hosted.
+    runs-on: ubuntu-latest
+
+    # Uno step è un comando shell (`run`) oppure un'action (`uses`).
+    # Gli step di un job girano IN SEQUENZA sulla stessa macchina.
+    steps:
+      - name: Saluto
+        run: echo "Ciao dal runner!"
+
+      # I contesti (`github`, `runner`, `env`, `steps`, ...) sono oggetti che
+      # GitHub popola a runtime. Si leggono con la sintassi ${{ ... }}.
+      - name: Chi ha lanciato cosa
+        run: |
+          echo "Repository:  ${{ github.repository }}"
+          echo "Evento:      ${{ github.event_name }}"
+          echo "Branch/ref:  ${{ github.ref_name }}"
+          echo "Commit:      ${{ github.sha }}"
+          echo "Lanciato da: ${{ github.actor }}"
+          echo "Run numero:  ${{ github.run_number }}"
+          echo "Sistema:     ${{ runner.os }}"
+
+      # Attenzione: senza `actions/checkout` il runner NON contiene il codice
+      # del repository. Questo step lo dimostra.
+      - name: La working directory è vuota
+        run: ls -la
+
+      - name: Scarico il codice del repo
+        uses: actions/checkout@v4
+
+      - name: Ora il codice c'è
+        run: ls -la
+
+      # Le variabili d'ambiente si dichiarano con `env` (a livello di workflow,
+      # job o step) e si leggono come normali variabili shell.
+      - name: Variabili d'ambiente
+        env:
+          CLIENTE: "Acme S.p.A."
+        run: echo "Sto lavorando per $CLIENTE"
+
+      # GITHUB_ENV: scrivendo su questo file, la variabile è disponibile
+      # negli step SUCCESSIVI dello stesso job.
+      - name: Esporto una variabile per gli step successivi
+        run: echo "ORA_BUILD=$(date +%H:%M:%S)" >> "$GITHUB_ENV"
+
+      - name: Leggo la variabile esportata
+        run: echo "La build è partita alle $ORA_BUILD"
+
+      # GITHUB_OUTPUT: gli output di uno step si leggono da altri step con
+      # steps.<id>.outputs.<nome>. Serve un `id` sullo step che li produce.
+      - name: Calcolo un output
+        id: calcolo
+        run: echo "versione=1.0.${{ github.run_number }}" >> "$GITHUB_OUTPUT"
+
+      - name: Uso l'output
+        # Nota YAML: un ": " dentro una riga non quotata la fa leggere come
+        # mappa. Il blocco `|` evita il problema.
+        run: |
+          echo "Versione calcolata: ${{ steps.calcolo.outputs.versione }}"
+
+      # GITHUB_STEP_SUMMARY: markdown che compare nella pagina del run.
+      # Utile per avere un riepilogo leggibile senza aprire i log.
+      - name: Scrivo il riepilogo del run
+        run: |
+          {
+            echo "## Lezione 01 completata"
+            echo ""
+            echo "| Chiave | Valore |"
+            echo "|---|---|"
+            echo "| Evento | ${{ github.event_name }} |"
+            echo "| Versione | ${{ steps.calcolo.outputs.versione }} |"
+            echo "| Orario | $ORA_BUILD |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  # Secondo job: parte in parallelo a `saluta` e mostra che è una macchina
+  # diversa (la variabile ORA_BUILD qui NON esiste).
+  altro-runner:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Questa è un'altra macchina
+        run: |
+          echo "Hostname: $(hostname)"
+          echo "ORA_BUILD vale: '${ORA_BUILD:-<vuota>}'"

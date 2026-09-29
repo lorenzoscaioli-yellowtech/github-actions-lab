@@ -1,0 +1,96 @@
+# Lezione 02 - Trigger e filtri
+#
+# Lo stesso workflow può partire per motivi diversi. Il job finale stampa
+# quale evento lo ha avviato, così si vede la differenza dal log.
+
+name: 02 - Trigger e filtri
+
+on:
+  # 1) Manuale, con INPUT: diventano un piccolo form nella UI.
+  workflow_dispatch:
+    inputs:
+      ambiente:
+        description: "Ambiente di destinazione"
+        type: choice
+        options: [staging, produzione]
+        default: staging
+      messaggio:
+        description: "Nota libera"
+        type: string
+        required: false
+      verbose:
+        description: "Log dettagliato"
+        type: boolean
+        default: false
+
+  # 2) Push: filtrato per branch e per path. `paths-ignore` è l'alternativa
+  #    per escludere invece di includere.
+  push:
+    branches:
+      - main
+      - "release/**"      # glob: release/1.0, release/2.x, ...
+    paths:
+      - ".github/workflows/02-trigger.yml"
+      - "app/**"
+    tags:
+      - "v*"              # anche i tag di versione (v1.0.0)
+
+  # 3) Pull request: di default scatta su opened, synchronize (nuovo push),
+  #    reopened. `types` lo cambia.
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened, ready_for_review]
+
+  # 4) Schedulato: sintassi cron in UTC. Qui: ogni lunedì alle 07:00 UTC.
+  #    Nota: gli schedule girano solo sul branch di default e GitHub li
+  #    disattiva dopo 60 giorni senza attività nel repo.
+  schedule:
+    - cron: "0 7 * * 1"
+
+jobs:
+  mostra-evento:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Quale evento mi ha avviato?
+        run: |
+          echo "Evento: ${{ github.event_name }}"
+          echo "Ref:    ${{ github.ref }}"
+
+      # `if` a livello di step: lo step viene saltato (non fallisce) se falso.
+      - name: Dettagli del lancio manuale
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          echo "Ambiente:  ${{ inputs.ambiente }}"
+          echo "Messaggio: ${{ inputs.messaggio || '(nessuno)' }}"
+          echo "Verbose:   ${{ inputs.verbose }}"
+
+      - name: Dettagli della pull request
+        if: github.event_name == 'pull_request'
+        run: |
+          echo "PR #${{ github.event.pull_request.number }}: ${{ github.event.pull_request.title }}"
+          echo "Da ${{ github.head_ref }} verso ${{ github.base_ref }}"
+          echo "Bozza: ${{ github.event.pull_request.draft }}"
+
+      - name: Dettagli del push
+        if: github.event_name == 'push'
+        run: |
+          echo "Commit: ${{ github.event.head_commit.message }}"
+          echo "Autore: ${{ github.event.head_commit.author.name }}"
+          echo "È un tag? ${{ startsWith(github.ref, 'refs/tags/') }}"
+
+      - name: Esecuzione schedulata
+        if: github.event_name == 'schedule'
+        run: echo "Sono il job del lunedì mattina"
+
+      # Il payload completo dell'evento è in github.event. Stamparlo è il modo
+      # più rapido per scoprire quali campi esistono.
+      - name: Payload completo dell'evento (per esplorare)
+        if: inputs.verbose == true || github.event_name != 'workflow_dispatch'
+        run: cat "$GITHUB_EVENT_PATH" | head -60
+
+  # `if` a livello di job: l'intero job viene saltato.
+  solo-in-produzione:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' && inputs.ambiente == 'produzione'
+    steps:
+      - run: echo "Questo job gira solo scegliendo 'produzione' dal form"
