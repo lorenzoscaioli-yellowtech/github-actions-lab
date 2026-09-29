@@ -32,7 +32,7 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       # Composite action della lezione 10: contiene setup-node con cache npm
       # (chiave basata sul lockfile) e `npm ci`. `npm ci` e non `npm install`:
@@ -52,7 +52,7 @@ jobs:
       # Gli artefatti sopravvivono al runner: scaricabili dalla pagina del run
       # o con `gh run download`. Servono per condividere build, report,
       # screenshot. Qui: la build e l'output dei test.
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: build-e-report
           path: |

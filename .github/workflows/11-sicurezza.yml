@@ -58,7 +58,7 @@ jobs:
       # spostarlo su codice diverso (è successo con tj-actions/changed-files
       # nel 2025). Uno SHA completo è immutabile. Il commento con la versione
       # serve a noi e a Dependabot, che aggiorna SHA e commento insieme.
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Cosa ho scaricato
         run: |
           git log -1 --format='Checkout del commit %h: %s'
@@ -68,7 +68,7 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       # actionlint controlla sintassi, espressioni, tipi degli input, nomi
       # delle action, e passa gli script `run` a shellcheck. Trova anche
       # usi pericolosi di input non fidati come github.event.pull_request.title.

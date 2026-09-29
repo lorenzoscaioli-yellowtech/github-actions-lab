@@ -36,12 +36,12 @@ jobs:
       run:
         working-directory: app
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       # Composite action della lezione 10 (setup-node + cache + npm ci).
       - uses: ./.github/actions/setup-app
       - run: npm run build
       # Artefatto speciale per Pages: un tar della cartella da pubblicare.
-      - uses: actions/upload-pages-artifact@v3
+      - uses: actions/upload-pages-artifact@v5
         with:
           path: app/dist
 
@@ -55,4 +55,4 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5

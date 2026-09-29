@@ -48,7 +48,7 @@ jobs:
         run: ls -la
 
       - name: Scarico il codice del repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Ora il codice c'è
         run: ls -la
