@@ -1,0 +1,74 @@
+# Lezione 03 - Continuous Integration
+#
+# Caso d'uso: eseguire i test automatici a ogni push e pull request.
+# Pattern standard: checkout -> setup runtime (con cache) -> installa -> testa
+# -> conserva un artefatto.
+
+name: 03 - CI
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ["app/**", ".github/workflows/03-ci.yml"]
+  pull_request:
+    branches: [main]
+    paths: ["app/**", ".github/workflows/03-ci.yml"]
+
+# Permessi minimi del GITHUB_TOKEN: per testare basta leggere il repo.
+permissions:
+  contents: read
+
+# `defaults.run.working-directory` evita di ripetere `cd app` in ogni step.
+defaults:
+  run:
+    working-directory: app
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # setup-node installa la versione richiesta e, con `cache`, salva e
+      # ripristina la cache di npm (chiave basata sul lockfile). Al secondo run
+      # l'installazione è molto più rapida.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+
+      # `npm ci` (non `npm install`): installa ESATTAMENTE il lockfile e
+      # fallisce se package.json e lockfile non coincidono. È la scelta giusta
+      # in CI perché rende la build riproducibile.
+      - run: npm ci
+
+      # I test di node:test possono produrre un report JUnit? No, ma il
+      # reporter `spec` va bene per i log. Salviamo anche l'output su file
+      # per l'artefatto.
+      - name: Test
+        run: npm test 2>&1 | tee test-output.txt
+
+      - name: Build
+        run: npm run build
+
+      # Gli artefatti sopravvivono al runner: scaricabili dalla pagina del run
+      # o con `gh run download`. Servono per condividere build, report,
+      # screenshot. Qui: la build e l'output dei test.
+      - uses: actions/upload-artifact@v4
+        with:
+          name: build-e-report
+          path: |
+            app/dist/
+            app/test-output.txt
+          retention-days: 7
+
+      - name: Riepilogo
+        run: |
+          {
+            echo "## CI"
+            echo '```'
+            grep -E "^ℹ (pass|fail|duration_ms)" test-output.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

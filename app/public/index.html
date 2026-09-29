@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="it">
+  <head>
+    <meta charset="utf-8" />
+    <title>Laboratorio GitHub Actions</title>
+    <style>
+      body {
+        font-family: system-ui, sans-serif;
+        max-width: 40rem;
+        margin: 4rem auto;
+      }
+      code {
+        background: #eee;
+        padding: 0.1rem 0.3rem;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Laboratorio GitHub Actions</h1>
+    <p>Pagina pubblicata automaticamente dal workflow di deploy.</p>
+    <ul>
+      <li>Versione: <code>{{VERSIONE}}</code></li>
+      <li>Commit: <code>{{COMMIT}}</code></li>
+      <li>Build: <code>{{DATA}}</code></li>
+    </ul>
+  </body>
+</html>

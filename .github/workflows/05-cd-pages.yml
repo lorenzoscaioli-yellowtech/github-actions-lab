@@ -1,0 +1,64 @@
+# Lezione 05 - Continuous Deployment su GitHub Pages
+#
+# Caso d'uso: pubblicare automaticamente un sito statico a ogni push su main.
+# Due job: `build` produce il sito, `deploy` lo pubblica. La separazione
+# serve perché il deploy usa un `environment`, che permette regole
+# (approvazioni, branch consentiti) e mostra l'URL pubblicato nella UI.
+#
+# Prerequisito (una volta sola): Settings > Pages > Source = "GitHub Actions",
+# oppure: gh api repos/OWNER/REPO/pages -X POST -f build_type=workflow
+
+name: 05 - CD su GitHub Pages
+
+on:
+  workflow_dispatch:
+  # Il trigger su push è disattivato finché Pages non è abilitato: sul piano
+  # gratuito Pages funziona solo su repo PUBBLICI. Quando il repo diventa
+  # pubblico (o il piano lo consente), riattivare:
+  # push:
+  #   branches: [main]
+  #   paths: ["app/**", ".github/workflows/05-cd-pages.yml"]
+
+# Il deploy su Pages richiede questi tre permessi al GITHUB_TOKEN.
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Un solo deploy alla volta. Se arrivano due push ravvicinati, il secondo
+# aspetta il primo (cancel-in-progress: false) invece di sovrapporsi.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+      - run: npm ci
+      - run: npm run build
+      # Artefatto speciale per Pages: un tar della cartella da pubblicare.
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: app/dist
+
+  deploy:
+    # `needs`: questo job parte solo se `build` è finito con successo.
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      # L'URL restituito dall'action di deploy compare come link nel run.
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

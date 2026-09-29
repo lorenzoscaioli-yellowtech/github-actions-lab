@@ -1,4 +1,11 @@
 # app
 
-Mini applicazione usata dalle lezioni di CI (dalla 03 in poi). Per ora è
-vuota: le lezioni 01 e 02 non hanno bisogno di codice.
+Mini applicazione Node usata dalle lezioni dalla 03 in poi.
+
+```bash
+npm ci               # installa le dipendenze dal lockfile
+npm test             # test con node:test (nessuna dipendenza)
+npm run lint         # ESLint
+npm run format:check # Prettier in modalità verifica
+npm run build        # genera dist/index.html
+```

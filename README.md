@@ -23,16 +23,22 @@ Da questo momento i workflow compaiono nella tab **Actions** del repo.
 
 ## Percorso didattico
 
+Le lezioni 03-07 seguono i cinque casi d'uso classici dei workflow: CI, CD,
+lint, release, automazione. Le successive coprono i meccanismi trasversali.
+
 | # | Lezione | Cosa impari | Stato |
 |---|---------|-------------|-------|
-| 01 | [Hello world](lezioni/01-hello-world.md) | Anatomia di un workflow: trigger, job, step, runner, contesti, variabili, output | pronta |
-| 02 | [Trigger e filtri](lezioni/02-trigger.md) | `push`, `pull_request`, `schedule`, `workflow_dispatch` con input, filtri su branch e path | pronta |
-| 03 | CI di un'applicazione | Checkout, setup del runtime, cache, test, artefatti | da fare |
-| 04 | Matrici e job paralleli | `strategy.matrix`, `needs`, `fail-fast`, `continue-on-error` | da fare |
-| 05 | Segreti, variabili e environment | `secrets`, `vars`, environment con approvazione manuale | da fare |
-| 06 | Action riusabili | `composite action`, `reusable workflow` con `workflow_call` | da fare |
-| 07 | Deploy | Pubblicare su GitHub Pages, build e push di un'immagine Docker su GHCR | da fare |
-| 08 | Sicurezza e buone pratiche | Permessi minimi del `GITHUB_TOKEN`, pin a SHA, Dependabot per le action, concurrency | da fare |
+| 01 | [Hello world](lezioni/01-hello-world.md) | Anatomia di un workflow: trigger, job, step, runner, contesti, variabili, output | eseguita |
+| 02 | [Trigger e filtri](lezioni/02-trigger.md) | `push`, `pull_request`, `schedule`, `workflow_dispatch` con input, filtri su branch e path | eseguita |
+| 03 | [Continuous Integration](lezioni/03-ci.md) | Checkout, setup-node con cache, `npm ci`, test, artefatti | pronta |
+| 04 | [Lint e formattazione](lezioni/04-lint.md) | ESLint e Prettier in job paralleli, annotazioni sulla PR | pronta |
+| 05 | [CD su GitHub Pages](lezioni/05-cd-pages.md) | Build e deploy separati, `environment`, `concurrency`, permessi Pages | bloccata: Pages richiede repo pubblico |
+| 06 | [Release](lezioni/06-release.md) | Trigger su tag, note generate, asset allegati, `gh` nei workflow | pronta |
+| 07 | [Automazione](lezioni/07-automazione.md) | Schedule, commit da bot, segreti opzionali, notifica Slack | pronta |
+| 08 | Matrici e job paralleli | `strategy.matrix`, `needs`, `fail-fast`, `continue-on-error` | da fare |
+| 09 | Segreti, variabili e environment | `secrets`, `vars`, environment con approvazione manuale | da fare |
+| 10 | Action riusabili | `composite action`, `reusable workflow` con `workflow_call` | da fare |
+| 11 | Sicurezza e buone pratiche | Permessi minimi, pin a SHA, Dependabot per le action, script injection | da fare |
 
 ## Comandi utili
 

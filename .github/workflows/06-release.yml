@@ -1,0 +1,77 @@
+# Lezione 06 - Gestione delle release
+#
+# Caso d'uso: quando si pubblica un tag `v*`, creare una GitHub Release con
+# note generate automaticamente dai commit/PR e allegare la build.
+#
+# Flusso: git tag v0.2.0 && git push origin v0.2.0
+
+name: 06 - Release
+
+on:
+  push:
+    tags: ["v*"]
+  # Lancio manuale per provare senza creare tag: crea una release "draft"
+  # con un tag fittizio, da cancellare dopo.
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag di prova (es. v0.0.0-test)"
+        required: true
+        default: v0.0.0-test
+
+# Per creare release e caricare asset serve scrivere sui contenuti del repo.
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Serve tutta la storia per generare le note tra un tag e l'altro.
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+      - run: npm ci
+
+      # Prima di rilasciare, i test. Una release non deve mai partire da
+      # codice che non passa la CI.
+      - run: npm test
+      - run: npm run build
+
+      - name: Impacchetto la build
+        id: pacchetto
+        run: |
+          TAG="${{ github.event_name == 'push' && github.ref_name || inputs.tag }}"
+          FILE="app-${TAG}.zip"
+          (cd dist && zip -r "../$FILE" .)
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "file=$FILE" >> "$GITHUB_OUTPUT"
+
+      # `gh` è preinstallato sui runner e usa GITHUB_TOKEN se esportato come
+      # GH_TOKEN. `--generate-notes` costruisce il changelog dai commit e dalle
+      # PR unite dall'ultimo tag. `--draft` solo per i lanci manuali di prova.
+      - name: Creo la release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.pacchetto.outputs.tag }}
+          FILE: ${{ steps.pacchetto.outputs.file }}
+          DRAFT: ${{ github.event_name == 'workflow_dispatch' && '--draft' || '' }}
+        run: |
+          gh release create "$TAG" "$FILE" \
+            --title "Release $TAG" \
+            --generate-notes \
+            $DRAFT
+
+      - name: Riepilogo
+        run: |
+          echo "## Release ${{ steps.pacchetto.outputs.tag }} creata" >> "$GITHUB_STEP_SUMMARY"
+          echo "Asset: \`${{ steps.pacchetto.outputs.file }}\`" >> "$GITHUB_STEP_SUMMARY"

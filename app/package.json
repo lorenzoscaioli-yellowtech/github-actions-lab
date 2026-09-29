@@ -1,0 +1,19 @@
+{
+  "name": "app-laboratorio",
+  "version": "0.1.0",
+  "description": "Mini app usata dalle lezioni di CI, lint, deploy e release",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test test/",
+    "lint": "eslint .",
+    "format:check": "prettier --check .",
+    "format": "prettier --write .",
+    "build": "node build.js"
+  },
+  "devDependencies": {
+    "eslint": "^9.0.0",
+    "prettier": "^3.0.0",
+    "@eslint/js": "^9.0.0"
+  }
+}

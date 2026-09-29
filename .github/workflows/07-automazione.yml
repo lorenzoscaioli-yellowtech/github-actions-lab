@@ -1,0 +1,88 @@
+# Lezione 07 - Automazione di operazioni ripetitive
+#
+# Caso d'uso: uno script schedulato che aggiorna la documentazione, fa commit
+# da solo e (se configurato) avvisa il team su Slack.
+#
+# Qui: ogni lunedì rigenera `docs/STATO.md` con le statistiche dei workflow
+# lette dall'API GitHub, e committa il file se è cambiato.
+
+name: 07 - Automazione
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 6 * * 1" # lunedì 06:00 UTC
+
+# `contents: write` per il commit, `actions: read` per leggere i run.
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  aggiorna-stato:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Rigenero docs/STATO.md
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          mkdir -p docs
+          {
+            echo "# Stato del laboratorio"
+            echo ""
+            echo "_Generato automaticamente dal workflow 07 il $(date -u +'%Y-%m-%d %H:%M UTC')._"
+            echo ""
+            echo "| Workflow | Ultimo esito | Run totali |"
+            echo "|---|---|---|"
+            gh api "repos/$REPO/actions/workflows" --jq '.workflows[] | "\(.id)\t\(.name)"' |
+            while IFS=$'\t' read -r id name; do
+              gh api "repos/$REPO/actions/workflows/$id/runs?per_page=1" \
+                --jq "\"| $name | \(.workflow_runs[0].conclusion // \"mai eseguito\") | \(.total_count) |\""
+            done
+          } > docs/STATO.md
+          cat docs/STATO.md
+
+      # Commit "da bot": l'identità è quella dell'app github-actions, così nel
+      # log si distingue dai commit umani. Si committa solo se c'è una
+      # differenza reale, altrimenti `git commit` fallirebbe.
+      - name: Commit se ci sono cambiamenti
+        id: commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/STATO.md
+          if git diff --cached --quiet; then
+            echo "Nessun cambiamento"
+            echo "cambiato=false" >> "$GITHUB_OUTPUT"
+          else
+            git commit -m "docs: aggiorna STATO.md [skip ci]"
+            git push
+            echo "cambiato=true" >> "$GITHUB_OUTPUT"
+          fi
+
+  notifica:
+    needs: aggiorna-stato
+    runs-on: ubuntu-latest
+    # Il contesto `secrets` non è ammesso direttamente in `if`: si passa da
+    # una variabile d'ambiente. Se il segreto non esiste il job viene saltato
+    # invece di fallire.
+    env:
+      SLACK_CONFIGURATO: ${{ secrets.SLACK_WEBHOOK_URL != '' }}
+    steps:
+      - name: Avviso su Slack
+        if: env.SLACK_CONFIGURATO == 'true'
+        env:
+          WEBHOOK: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          curl -sS -X POST -H 'Content-type: application/json' \
+            --data "{\"text\":\"Laboratorio: STATO.md aggiornato da ${{ github.workflow }} (run #${{ github.run_number }})\"}" \
+            "$WEBHOOK"
+
+      - name: Slack non configurato
+        if: env.SLACK_CONFIGURATO != 'true'
+        run: |
+          echo "Nessun segreto SLACK_WEBHOOK_URL: salto la notifica."
+          echo "Per attivarla: gh secret set SLACK_WEBHOOK_URL"
