@@ -4,7 +4,13 @@
 # da solo e (se configurato) avvisa il team su Slack.
 #
 # Qui: ogni lunedì rigenera `docs/STATO.md` con le statistiche dei workflow
-# lette dall'API GitHub, e committa il file se è cambiato.
+# lette dall'API GitHub e lo pubblica sul branch `automazione/stato`.
+#
+# Perché non su main: dalla lezione 12 main accetta modifiche solo via PR con
+# il check `gate`. Il GITHUB_TOKEN non ha bypass, e una PR aperta con il
+# GITHUB_TOKEN non avvia altri workflow, quindi `gate` non partirebbe mai.
+# Le alternative per scrivere su un branch protetto sono una GitHub App o una
+# deploy key aggiunte al bypass del ruleset: vedi lezioni/07-automazione.md.
 
 name: 07 - Automazione
 
@@ -40,27 +46,37 @@ jobs:
             gh api "repos/$REPO/actions/workflows" --jq '.workflows[] | "\(.id)\t\(.name)"' |
             while IFS=$'\t' read -r id name; do
               gh api "repos/$REPO/actions/workflows/$id/runs?per_page=1" \
-                --jq "\"| $name | \(.workflow_runs[0].conclusion // \"mai eseguito\") | \(.total_count) |\""
+                --jq "\"| $name | \(.workflow_runs[0] | if . == null then \"mai eseguito\" elif .status == \"completed\" then .conclusion else .status end) | \(.total_count) |\""
             done
           } > docs/STATO.md
           cat docs/STATO.md
 
       # Commit "da bot": l'identità è quella dell'app github-actions, così nel
-      # log si distingue dai commit umani. Si committa solo se c'è una
-      # differenza reale, altrimenti `git commit` fallirebbe.
-      - name: Commit se ci sono cambiamenti
+      # log si distingue dai commit umani. Si pubblica solo se la TABELLA è
+      # cambiata: la riga con la data viene esclusa dal confronto, altrimenti
+      # ci sarebbe un commit a ogni run.
+      - name: Pubblico su automazione/stato se la tabella è cambiata
         id: commit
+        env:
+          BRANCH: automazione/stato
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add docs/STATO.md
-          if git diff --cached --quiet; then
-            echo "Nessun cambiamento"
+          if git fetch -q origin "$BRANCH" 2>/dev/null &&
+             git show "origin/$BRANCH:docs/STATO.md" > "$RUNNER_TEMP/prima.md" 2>/dev/null &&
+             diff -q <(grep -v '^_Generato' "$RUNNER_TEMP/prima.md") \
+                     <(grep -v '^_Generato' docs/STATO.md) > /dev/null; then
+            echo "Tabella invariata: niente commit"
             echo "cambiato=false" >> "$GITHUB_OUTPUT"
           else
+            # Il branch è una fotografia: si riparte da main a ogni
+            # aggiornamento e si sovrascrive con --force.
+            git checkout -B "$BRANCH"
+            git add docs/STATO.md
             git commit -m "docs: aggiorna STATO.md [skip ci]"
-            git push
+            git push --force origin "$BRANCH"
             echo "cambiato=true" >> "$GITHUB_OUTPUT"
+            echo "Pubblicato: ${{ github.server_url }}/${{ github.repository }}/blob/$BRANCH/docs/STATO.md" >> "$GITHUB_STEP_SUMMARY"
           fi
 
   notifica:
