@@ -32,7 +32,7 @@ lint, release, automazione. Le successive coprono i meccanismi trasversali.
 | 02 | [Trigger e filtri](lezioni/02-trigger.md) | `push`, `pull_request`, `schedule`, `workflow_dispatch` con input, filtri su branch e path | eseguita |
 | 03 | [Continuous Integration](lezioni/03-ci.md) | Checkout, setup-node con cache, `npm ci`, test, artefatti | eseguita |
 | 04 | [Lint e formattazione](lezioni/04-lint.md) | ESLint e Prettier in job paralleli, annotazioni sulla PR | eseguita |
-| 05 | [CD su GitHub Pages](lezioni/05-cd-pages.md) | Build e deploy separati, `environment`, `concurrency`, permessi Pages | pronta |
+| 05 | [CD su GitHub Pages](lezioni/05-cd-pages.md) | Build e deploy separati, `environment`, `concurrency`, permessi Pages | eseguita |
 | 06 | [Release](lezioni/06-release.md) | Trigger su tag, note generate, asset allegati, `gh` nei workflow | eseguita |
 | 07 | [Automazione](lezioni/07-automazione.md) | Schedule, commit da bot, segreti opzionali, notifica Slack | eseguita |
 | 08 | Matrici e job paralleli | `strategy.matrix`, `needs`, `fail-fast`, `continue-on-error` | da fare |

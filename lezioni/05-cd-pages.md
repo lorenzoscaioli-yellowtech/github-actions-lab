@@ -37,4 +37,15 @@ Il sito sarà su `https://lorenzoscaioli-yellowtech.github.io/github-actions-lab
 
 ## Note dopo l'esecuzione
 
-_(da compilare)_
+Primo deploy 29/09/2026, dopo aver reso pubblico il repo: job `build` e
+`deploy` verdi, sito online in circa 20 secondi al primo push.
+
+- Il sito mostra versione, commit corto (da `GITHUB_SHA`) e data di build:
+  conferma che è la build del workflow, non un file statico.
+- Nel run compare il box "github-pages" con l'URL: è l'`environment`.
+  In Settings > Environments > github-pages si possono aggiungere reviewer
+  obbligatori o limitare i branch da cui si può fare deploy.
+- L'URL del deploy arriva da `steps.deployment.outputs.page_url`, quindi
+  il job non ha bisogno di conoscerlo in anticipo.
+- Da provare: due push ravvicinati per vedere `concurrency` mettere in coda
+  il secondo deploy.
