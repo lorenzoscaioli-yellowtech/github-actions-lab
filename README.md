@@ -36,7 +36,7 @@ lint, release, automazione. Le successive coprono i meccanismi trasversali.
 | 06 | [Release](lezioni/06-release.md) | Trigger su tag, note generate, asset allegati, `gh` nei workflow | eseguita |
 | 07 | [Automazione](lezioni/07-automazione.md) | Schedule, commit da bot, segreti opzionali, notifica Slack | eseguita |
 | 08 | [Matrici](lezioni/08-matrice.md) | `strategy.matrix`, `include`/`exclude`, `fail-fast`, `continue-on-error`, Windows e macOS | eseguita |
-| 09 | [Segreti, variabili, environment](lezioni/09-deploy-approvazione.md) | `vars` e `secrets` per ambiente, approvazione manuale, branch policy | in attesa di approvazione |
+| 09 | [Segreti, variabili, environment](lezioni/09-deploy-approvazione.md) | `vars` e `secrets` per ambiente, approvazione manuale, branch policy | eseguita |
 | 10 | [Action riusabili](lezioni/10-action-riusabili.md) | Composite action, reusable workflow, uso da un altro repo del proprio account | eseguita |
 | 11 | [Sicurezza](lezioni/11-sicurezza.md) | Permessi minimi, pin a SHA, script injection, actionlint, Dependabot | eseguita |
 | 12 | [Check obbligatori sulle PR](lezioni/12-pr-gate.md) | Ruleset su main, job `gate` con `if: always()`, bypass admin | eseguita |

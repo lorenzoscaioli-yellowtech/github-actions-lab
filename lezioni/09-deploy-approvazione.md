@@ -59,4 +59,15 @@ secondi, `produzione` in stato **waiting** con reviewer
 
 - Finché il run è in attesa, `gh run view --log` non restituisce i log
   nemmeno dei job già finiti: arrivano quando il run si chiude.
-- _(da completare dopo l'approvazione: cosa stampano i tre job)_
+- Approvato dalla UI circa 18 minuti dopo: `produzione` è partito subito e il
+  run è diventato verde.
+- `senza-environment`: `NOME_PROGETTO` è visibile perché è di repo,
+  `URL_DEPLOY` è vuoto e `API_TOKEN` non è impostato. Le variabili e i
+  segreti degli environment esistono solo per i job che dichiarano quell'environment.
+- `staging`: destinazione `https://staging.esempio.it`, token `***`, lunghezza 23.
+- `produzione`: destinazione `https://www.esempio.it`, token `***`, lunghezza 26.
+  Stesso codice e stessi nomi, valori diversi: è lo scopo degli environment.
+- La lunghezza dimostra che il segreto c'è ed è diverso, senza stamparlo.
+  Il mascheramento `***` vale solo per il valore esatto: una sua
+  trasformazione, come base64 o un pezzo, NON viene mascherata.
+- In Deployments del repo compaiono i due ambienti con il link `url`.
