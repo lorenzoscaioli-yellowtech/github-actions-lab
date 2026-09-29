@@ -2,18 +2,17 @@
 
 File: `.github/workflows/05-cd-pages.yml`
 
-## Stato: bloccata
+## Prerequisito
 
 Il piano gratuito non supporta GitHub Pages sui repo **privati**
 (risposta dell'API: "Your current plan does not support GitHub Pages for
-this repository"). Per sbloccarla basta rendere pubblico il repo:
+this repository"). Con il repo pubblico, Pages si abilita una volta sola:
 
 ```bash
-gh repo edit --visibility public --accept-visibility-change-consequences
 gh api repos/lorenzoscaioli-yellowtech/github-actions-lab/pages -X POST -f build_type=workflow
 ```
 
-e riattivare il trigger `push` nel workflow.
+`build_type=workflow` significa "la sorgente è GitHub Actions", non un branch.
 
 ## Cosa dimostra
 
@@ -28,7 +27,7 @@ e riattivare il trigger `push` nel workflow.
 - Le tre action ufficiali: `upload-pages-artifact`, `deploy-pages`
   (e opzionalmente `configure-pages`).
 
-## Come lanciarla (una volta sbloccata)
+## Come lanciarla
 
 ```bash
 gh workflow run 05-cd-pages.yml && gh run watch

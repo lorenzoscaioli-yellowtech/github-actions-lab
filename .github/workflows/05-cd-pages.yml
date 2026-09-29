@@ -12,12 +12,10 @@ name: 05 - CD su GitHub Pages
 
 on:
   workflow_dispatch:
-  # Il trigger su push è disattivato finché Pages non è abilitato: sul piano
-  # gratuito Pages funziona solo su repo PUBBLICI. Quando il repo diventa
-  # pubblico (o il piano lo consente), riattivare:
-  # push:
-  #   branches: [main]
-  #   paths: ["app/**", ".github/workflows/05-cd-pages.yml"]
+  # Nota: sul piano gratuito Pages funziona solo su repo PUBBLICI.
+  push:
+    branches: [main]
+    paths: ["app/**", ".github/workflows/05-cd-pages.yml"]
 
 # Il deploy su Pages richiede questi tre permessi al GITHUB_TOKEN.
 permissions:
