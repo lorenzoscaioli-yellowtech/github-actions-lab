@@ -48,13 +48,13 @@ jobs:
         working-directory: app
         shell: bash
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       # ATTENZIONE: qui NON usiamo la composite `./.github/actions/setup-app`.
       # In un reusable workflow `./` si riferisce al repo del CHIAMANTE (è
       # quello che il checkout ha scaricato). Chiamato da un altro repo, il
       # percorso non esisterebbe. Per questo gli step sono scritti per esteso.
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: ${{ inputs.node-version }}
           cache: npm
@@ -78,7 +78,7 @@ jobs:
           echo "upload-artifact == 'true'  = ${{ inputs.upload-artifact == 'true' }}"
 
       - if: inputs.upload-artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: dist-${{ inputs.comando }}
           path: app/dist/
