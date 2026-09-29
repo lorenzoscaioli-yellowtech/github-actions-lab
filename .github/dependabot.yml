@@ -9,7 +9,13 @@
 version: 2
 updates:
   - package-ecosystem: github-actions
-    directory: /
+    # `directory: /` controlla solo .github/workflows/. Le composite action
+    # in .github/actions/ vanno elencate a parte, altrimenti restano indietro
+    # (scoperto dopo il primo giro di aggiornamenti: setup-app era rimasta a
+    # setup-node@v4 mentre i workflow erano passati a v7).
+    directories:
+      - /
+      - /.github/actions/*
     schedule:
       interval: weekly
       day: monday

@@ -41,3 +41,12 @@ In locale, prima di ogni push: `actionlint`.
 - **Dependabot** ha aperto due PR pochi secondi dopo il push di
   `dependabot.yml`: una per le action (5 aggiornamenti raggruppati), una per
   le dipendenze npm di sviluppo. Sono PR vere da valutare e unire a mano.
+- **Primo giro di Dependabot**, unito il 29/09/2026: checkout, setup-node e
+  upload-artifact passano alla v7, le action di Pages alla v5. Lo SHA pinnato
+  è aggiornato insieme al commento, che ora dice `# v7.0.1`.
+- **Buco trovato**: la composite `setup-app` era rimasta a `setup-node@v4`.
+  Con `directory: /` Dependabot guarda solo `.github/workflows/`. Corretto con
+  `directories: [/, /.github/actions/*]` e allineata a mano la composite a v7.
+- La PR delle action, aperta prima del ruleset, era bloccata su "gate
+  Expected". `@dependabot rebase` ha fatto partire tutti i check, gate
+  compreso, e la PR è diventata unibile.
