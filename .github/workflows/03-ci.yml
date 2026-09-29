@@ -20,9 +20,13 @@ permissions:
   contents: read
 
 # `defaults.run.working-directory` evita di ripetere `cd app` in ogni step.
+# `shell: bash` esplicito: la shell di default è `bash -e`, quella esplicita
+# è `bash -e -o pipefail`. Senza pipefail, `npm test | tee file` restituisce
+# l'exit code di `tee` e uno step con i test rotti risulta VERDE.
 defaults:
   run:
     working-directory: app
+    shell: bash
 
 jobs:
   test:
@@ -44,9 +48,9 @@ jobs:
       # in CI perché rende la build riproducibile.
       - run: npm ci
 
-      # I test di node:test possono produrre un report JUnit? No, ma il
-      # reporter `spec` va bene per i log. Salviamo anche l'output su file
-      # per l'artefatto.
+      # L'output viene anche salvato su file per l'artefatto e il riepilogo.
+      # Nota: node:test senza terminale usa il reporter TAP; in package.json
+      # è forzato `--test-reporter=spec` per avere lo stesso output ovunque.
       - name: Test
         run: npm test 2>&1 | tee test-output.txt
 
