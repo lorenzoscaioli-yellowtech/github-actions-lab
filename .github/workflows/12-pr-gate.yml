@@ -1,0 +1,53 @@
+# Lezione 12 - Check obbligatorio per le pull request
+#
+# Un ruleset su `main` (vedi lezioni/12-*.md) richiede che il check `gate`
+# sia verde prima del merge. `gate` è un job che dipende da tutti gli altri:
+# nel ruleset si elenca SOLO lui, e si possono aggiungere o rinominare job
+# qui senza toccare le impostazioni del repo.
+#
+# IMPORTANTE: niente filtro `paths` su questo workflow. Un check obbligatorio
+# che non parte (perché la PR non tocca quei path) resta "Expected - waiting"
+# per sempre e blocca il merge.
+
+name: 12 - PR gate
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    uses: ./.github/workflows/10-node-check.yml
+    with:
+      comando: test
+
+  lint:
+    uses: ./.github/workflows/10-node-check.yml
+    with:
+      comando: lint
+
+  gate:
+    needs: [test, lint]
+    # always(): il gate gira anche se un job precedente è fallito o saltato.
+    # Senza, verrebbe "skipped", e per le regole di GitHub un check skipped
+    # CONTA COME SUPERATO: il merge sarebbe consentito con i test rotti.
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Risultati dei job richiesti
+        run: echo "${{ join(needs.*.result, ', ') }}"
+
+      # needs.*.result è la lista dei risultati: success, failure,
+      # cancelled o skipped. Qualunque cosa diversa da success blocca.
+      - name: Blocco se qualcosa non è verde
+        if: >-
+          contains(needs.*.result, 'failure') ||
+          contains(needs.*.result, 'cancelled') ||
+          contains(needs.*.result, 'skipped')
+        run: |
+          echo "::error::Almeno un job richiesto non è success"
+          exit 1
