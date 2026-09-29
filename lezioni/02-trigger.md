@@ -58,4 +58,22 @@ git tag v0.1.0 && git push origin v0.1.0
 
 ## Note dopo l'esecuzione
 
-_(da compilare dopo il primo run)_
+Due run il 29/09/2026: uno da `push` (commit iniziale) e uno manuale con
+`ambiente=produzione`, `verbose=true`.
+
+- Run da push: gira solo lo step "Dettagli del push", gli altri tre sono
+  `skipped`. Il job `solo-in-produzione` è `skipped` per intero.
+  `github.event.head_commit.message` contiene il messaggio del commit;
+  `startsWith(github.ref, 'refs/tags/')` vale `false`.
+- Run manuale: gli input arrivano correttamente in `inputs.*`, il job
+  `solo-in-produzione` gira, il payload in `$GITHUB_EVENT_PATH` contiene un
+  oggetto `inputs` con i tre valori. Lo step "Dettagli del push" è skipped.
+- Nota sull'`if`: nel run manuale con `verbose=true` lo step del payload gira;
+  la condizione `inputs.verbose == true` confronta un booleano, non la
+  stringa `'true'` (per `workflow_dispatch` gli input `boolean` sono tipizzati
+  davvero, a differenza di quelli dei `workflow_call`, da verificare nella
+  lezione 06).
+- Verifica del filtro `paths`: il push di questo file di appunti non ha fatto
+  partire nessun workflow (vedi commit successivo).
+- Ancora da provare: il trigger `pull_request` e il trigger su tag `v*`.
+  Lo `schedule` del lunedì si vedrà da solo.

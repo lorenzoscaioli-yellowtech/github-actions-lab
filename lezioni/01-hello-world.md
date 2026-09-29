@@ -49,4 +49,19 @@ solo questo workflow.
 
 ## Note dopo l'esecuzione
 
-_(da compilare dopo il primo run)_
+Primo run: 29/09/2026, evento `push` (il commit iniziale conteneva il file del
+workflow, quindi il filtro `paths` era soddisfatto). Durata 12 secondi.
+
+- `ls -la` prima del checkout: solo `..`, la directory di lavoro è vuota.
+  Dopo il checkout: README.md, app/, lezioni/ (e .github/).
+- `GITHUB_ENV` funziona tra step: "La build è partita alle 09:44:37".
+- `GITHUB_OUTPUT`: "Versione calcolata: 1.0.1", cioè `run_number` = 1.
+- Nel job `altro-runner` ORA_BUILD vale `<vuota>` e l'hostname è un
+  `runnervm...` diverso: confermato che ogni job è una macchina a sé.
+- Nei log ogni step `run` mostra prima il comando (in un gruppo `##[group]`)
+  e poi l'output: comodo per capire cosa è stato valutato da `${{ }}` prima
+  dell'esecuzione (nel gruppo si vede già il valore sostituito, non
+  l'espressione).
+- Dubbio da approfondire: la shell è `bash -e`, quindi il primo comando che
+  fallisce interrompe lo step. Da provare cosa succede con `set +e` o con
+  `shell: bash` esplicito (che aggiunge anche `-o pipefail`).
