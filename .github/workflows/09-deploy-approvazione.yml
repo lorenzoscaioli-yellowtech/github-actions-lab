@@ -1,0 +1,65 @@
+# Lezione 09 - Segreti, variabili, environment con approvazione
+#
+# Configurazione fatta una volta sola (vedi lezioni/09-*.md):
+# - variabile di repo       NOME_PROGETTO           (vale per tutti i job)
+# - environment `staging`    : variabile URL_DEPLOY, segreto API_TOKEN, nessuna regola
+# - environment `produzione` : variabile URL_DEPLOY, segreto API_TOKEN,
+#                              reviewer obbligatorio, solo dal branch main
+#
+# Stesso nome (URL_DEPLOY, API_TOKEN), valore diverso a seconda
+# dell'environment del job: il workflow è identico per i due ambienti.
+
+name: 09 - Deploy con approvazione
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  senza-environment:
+    runs-on: ubuntu-latest
+    steps:
+      # Senza `environment:` il job vede le variabili e i segreti di REPO,
+      # ma non quelli degli environment: URL_DEPLOY e API_TOKEN sono vuoti.
+      - name: Cosa vedo senza environment
+        run: |
+          echo "NOME_PROGETTO = '${{ vars.NOME_PROGETTO }}'"
+          echo "URL_DEPLOY    = '${{ vars.URL_DEPLOY }}'"
+          echo "API_TOKEN impostato? ${{ secrets.API_TOKEN != '' }}"
+
+  staging:
+    runs-on: ubuntu-latest
+    environment:
+      name: staging
+      url: ${{ vars.URL_DEPLOY }}
+    steps:
+      - name: Deploy (simulato) su staging
+        env:
+          API_TOKEN: ${{ secrets.API_TOKEN }}
+        run: |
+          echo "Progetto:   ${{ vars.NOME_PROGETTO }}"
+          echo "Destinazione: ${{ vars.URL_DEPLOY }}"
+          # I segreti sono mascherati nei log: qui compare ***.
+          echo "Token:      $API_TOKEN"
+          echo "Lunghezza del token: ${#API_TOKEN} caratteri"
+
+  produzione:
+    # Parte solo se staging è andato bene...
+    needs: staging
+    runs-on: ubuntu-latest
+    # ...e poi si FERMA in stato "Waiting" finché un reviewer non approva
+    # dalla pagina del run (Review deployments) o con l'API.
+    # Il branch policy impedisce il deploy in produzione da branch diversi da main.
+    environment:
+      name: produzione
+      url: ${{ vars.URL_DEPLOY }}
+    steps:
+      - name: Deploy (simulato) in produzione
+        env:
+          API_TOKEN: ${{ secrets.API_TOKEN }}
+        run: |
+          echo "Destinazione: ${{ vars.URL_DEPLOY }}"
+          echo "Token:      $API_TOKEN"
+          echo "Lunghezza del token: ${#API_TOKEN} caratteri"
