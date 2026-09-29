@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { somma, dividi } from "../src/calcolatrice.js";
 
 test("somma due numeri", () => {
-  assert.equal(somma(2, 3), 6);
+  assert.equal(somma(2, 3), 5);
 });
 
 test("divide due numeri", () => {
