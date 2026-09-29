@@ -41,4 +41,14 @@ partire la CI, occorre un PAT o una GitHub App.
 
 ## Note dopo l'esecuzione
 
-_(da compilare)_
+Lancio manuale 29/09/2026: `docs/STATO.md` generato e committato da
+`github-actions[bot]`, job `notifica` verde con lo step Slack `skipped`.
+
+- Il commit del bot non ha avviato nessun workflow, sia per `[skip ci]` sia
+  perché i push con `GITHUB_TOKEN` non generano eventi.
+- Nella tabella 06 e 07 risultano "mai eseguito": erano in corso mentre lo
+  script leggeva l'API, e `conclusion` è null finché il run non finisce.
+  Da sistemare usando `.status` oltre a `.conclusion`.
+- Il file contiene la data, quindi cambia sempre e viene committato a ogni
+  run. Per un'automazione vera meglio togliere la data o confrontare solo
+  la tabella.

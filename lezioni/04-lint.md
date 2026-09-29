@@ -30,4 +30,7 @@ riconoscibile il caso d'uso.
 
 ## Note dopo l'esecuzione
 
-_(da compilare)_
+Due run (29/09/2026), entrambi verdi, job `eslint` e `prettier` in parallelo.
+Prima del push Prettier aveva riformattato `public/index.html`: in locale
+`format:check` fallisce esattamente come in CI, quindi vale la pena avere un
+hook pre-commit o l'estensione dell'editor per non scoprirlo dopo il push.

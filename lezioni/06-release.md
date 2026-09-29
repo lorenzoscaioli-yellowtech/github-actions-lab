@@ -43,4 +43,12 @@ gh release delete v0.0.0-test --yes
 
 ## Note dopo l'esecuzione
 
-_(da compilare)_
+Tag `v0.1.0` pushato il 29/09/2026: la release è stata creata in 12 secondi
+con l'asset `app-v0.1.0.zip`.
+
+- Le note generate contengono solo il link "Full Changelog": senza PR unite
+  e senza tag precedente non c'è materiale per il changelog. Alla prossima
+  release, con PR in mezzo, le note elencheranno i titoli delle PR.
+- Il push del tag ha fatto partire anche la lezione 02 (ha `tags: v*`),
+  come previsto.
+- I test sono girati prima della release: se falliscono, niente release.
