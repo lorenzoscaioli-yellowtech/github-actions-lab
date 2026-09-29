@@ -1,0 +1,78 @@
+# Lezione 11 - Sicurezza
+#
+# Tre temi: permessi minimi del GITHUB_TOKEN, action pinnate a SHA,
+# script injection. Più un job che analizza tutti i workflow con actionlint.
+# Dependabot per le action è in .github/dependabot.yml.
+
+name: 11 - Sicurezza
+
+on:
+  workflow_dispatch:
+    inputs:
+      titolo:
+        description: "Testo libero (prova: x\"; echo INIETTATO; echo \")"
+        type: string
+        default: Titolo innocuo
+  push:
+    branches: [main]
+    paths: [".github/**"]
+  pull_request:
+    branches: [main]
+    paths: [".github/**"]
+
+# Nessun permesso di default per tutti i job. Ogni job chiede solo ciò che
+# gli serve. Senza questa riga il token ha i permessi di default del repo
+# (Settings > Actions > Workflow permissions), spesso troppo ampi.
+permissions: {}
+
+jobs:
+  script-injection:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    # Questo job non legge nemmeno il repo: nessun permesso.
+    steps:
+      # VULNERABILE: ${{ }} viene sostituito PRIMA che bash legga lo script.
+      # Il testo dell'input diventa codice. Con un input come
+      #   x"; echo INIETTATO; echo "
+      # bash esegue `echo INIETTATO`. In un caso reale l'input è il titolo di
+      # una PR o di una issue, scritto da chiunque, e il comando potrebbe
+      # leggere i segreti o usare il token.
+      - name: Versione vulnerabile
+        run: |
+          echo "Titolo ricevuto: ${{ inputs.titolo }}"
+
+      # SICURA: l'input arriva come variabile d'ambiente. Bash la tratta come
+      # dato, mai come codice, qualunque cosa contenga.
+      - name: Versione sicura
+        env:
+          TITOLO: ${{ inputs.titolo }}
+        run: |
+          echo "Titolo ricevuto: $TITOLO"
+
+  pin-sha:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      # Un tag come @v4 è mobile: chi controlla il repo dell'action può
+      # spostarlo su codice diverso (è successo con tj-actions/changed-files
+      # nel 2025). Uno SHA completo è immutabile. Il commento con la versione
+      # serve a noi e a Dependabot, che aggiorna SHA e commento insieme.
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Cosa ho scaricato
+        run: |
+          git log -1 --format='Checkout del commit %h: %s'
+
+  actionlint:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      # actionlint controlla sintassi, espressioni, tipi degli input, nomi
+      # delle action, e passa gli script `run` a shellcheck. Trova anche
+      # usi pericolosi di input non fidati come github.event.pull_request.title.
+      # `docker://` esegue direttamente un'immagine Docker come step.
+      - uses: docker://rhysd/actionlint:latest
+        with:
+          args: -color

@@ -1,0 +1,46 @@
+# Lezione 13 - Concurrency e timeout
+#
+# Concurrency: al massimo UN run per gruppo. Con cancel-in-progress: true il
+# run nuovo cancella quello vecchio. Tipico per le PR: se fai tre push di
+# fila, conta solo l'ultimo e non si sprecano minuti.
+#
+# Prova: lanciarlo tre volte di fila
+#   for i in 1 2 3; do gh workflow run 13-concurrency.yml; sleep 3; done
+
+name: 13 - Concurrency e timeout
+
+on:
+  workflow_dispatch:
+    inputs:
+      mostra-timeout:
+        description: Esegui anche il job che va in timeout
+        type: boolean
+        default: false
+
+# Gruppo = workflow + ref. Su una PR il ref è refs/pull/N/merge, quindi ogni
+# PR ha il suo gruppo e PR diverse non si cancellano a vicenda.
+# Confronta con la lezione 05: lì cancel-in-progress: false, cioè i deploy si
+# mettono in coda invece di cancellarsi (un deploy a metà è peggio di uno lento).
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions: {}
+
+jobs:
+  lavoro-lungo:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Simulo 90 secondi di lavoro
+        run: |
+          for i in $(seq 1 9); do echo "passo $i/9"; sleep 10; done
+
+  timeout:
+    if: inputs.mostra-timeout
+    runs-on: ubuntu-latest
+    # Il default è 360 minuti: un job bloccato consuma 6 ore di minuti.
+    # Impostare sempre un timeout realistico.
+    timeout-minutes: 1
+    steps:
+      - name: Questo step non finirà mai in tempo
+        run: sleep 120

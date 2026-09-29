@@ -1,0 +1,31 @@
+# Lezione 11 - Dependabot
+#
+# Dependabot apre da solo delle PR quando esce una nuova versione di una
+# dipendenza. `github-actions` controlla i `uses:` di tutti i workflow
+# (aggiorna anche gli SHA pinnati e il commento con la versione).
+# `groups` raccoglie gli aggiornamenti in una sola PR per ecosistema,
+# invece di una PR per ogni dipendenza.
+
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    groups:
+      actions:
+        patterns: ["*"]
+    commit-message:
+      prefix: "ci"
+
+  - package-ecosystem: npm
+    directory: /app
+    schedule:
+      interval: weekly
+      day: monday
+    groups:
+      npm-dev:
+        dependency-type: development
+    commit-message:
+      prefix: "deps"

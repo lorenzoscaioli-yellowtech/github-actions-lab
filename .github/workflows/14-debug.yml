@@ -1,0 +1,69 @@
+# Lezione 14 - Debug
+#
+# Strumenti per capire cosa succede dentro un run:
+# - comandi di workflow (::notice::, ::warning::, ::error::, ::group::, ...)
+# - dump dei contesti con toJSON
+# - log di debug: `gh run rerun <id> --debug` oppure la variabile
+#   ACTIONS_STEP_DEBUG=true tra le variabili del repo
+# - esecuzione locale con `act` (richiede Docker)
+
+name: 14 - Debug
+
+on:
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  debug:
+    runs-on: ubuntu-latest
+    steps:
+      # Le annotazioni compaiono in cima alla pagina del run e, se hanno
+      # file e riga, sul file nella PR. `::error::` NON fa fallire lo step.
+      - name: Annotazioni
+        run: |
+          echo "::notice title=Informazione::Questo è un notice"
+          echo "::warning title=Attenzione::Questo è un warning"
+          echo "::error file=app/src/calcolatrice.js,line=5,title=Esempio::Errore agganciato a una riga di codice"
+
+      # Gruppi: sezioni richiudibili nel log, utili per output lunghi.
+      - name: Gruppi nel log
+        run: |
+          echo "::group::Variabili d'ambiente del runner"
+          env | sort | grep -E '^(GITHUB|RUNNER)_' | head -30
+          echo "::endgroup::"
+          echo "Fuori dal gruppo"
+
+      # add-mask: da qui in poi il valore compare come *** in tutti i log.
+      # I segreti (secrets.*) sono mascherati automaticamente; add-mask serve
+      # per valori sensibili calcolati durante il run (es. un token temporaneo).
+      - name: Mascherare un valore
+        run: |
+          VALORE="password-generata-$RANDOM"
+          echo "::add-mask::$VALORE"
+          echo "Il valore è: $VALORE"
+
+      # ::debug:: è visibile SOLO quando il log di debug è attivo.
+      - name: Messaggi di debug
+        run: |
+          echo "::debug::Questo messaggio si vede solo con il debug attivo"
+          echo "runner.debug = '${{ runner.debug }}'"
+
+      - name: Solo in modalità debug
+        if: runner.debug == '1'
+        run: echo "Il debug è attivo, stampo informazioni extra"
+
+      # Dump dei contesti: il modo più rapido per sapere cosa c'è dentro.
+      # Passati da env (non direttamente in ${{ }} dentro lo script) per lo
+      # stesso motivo della lezione 11.
+      - name: Dump dei contesti
+        env:
+          CTX_GITHUB: ${{ toJSON(github) }}
+          CTX_RUNNER: ${{ toJSON(runner) }}
+          CTX_JOB: ${{ toJSON(job) }}
+          CTX_STEPS: ${{ toJSON(steps) }}
+        run: |
+          echo "::group::github";  echo "$CTX_GITHUB";  echo "::endgroup::"
+          echo "::group::runner";  echo "$CTX_RUNNER";  echo "::endgroup::"
+          echo "::group::job";     echo "$CTX_JOB";     echo "::endgroup::"
+          echo "::group::steps";   echo "$CTX_STEPS";   echo "::endgroup::"

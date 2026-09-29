@@ -49,8 +49,9 @@ jobs:
 
       - name: Impacchetto la build
         id: pacchetto
+        env:
+          TAG: ${{ github.event_name == 'push' && github.ref_name || inputs.tag }}
         run: |
-          TAG="${{ github.event_name == 'push' && github.ref_name || inputs.tag }}"
           FILE="app-${TAG}.zip"
           (cd dist && zip -r "../$FILE" .)
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
@@ -64,12 +65,13 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ steps.pacchetto.outputs.tag }}
           FILE: ${{ steps.pacchetto.outputs.file }}
-          DRAFT: ${{ github.event_name == 'workflow_dispatch' && '--draft' || '' }}
+          PROVA: ${{ github.event_name == 'workflow_dispatch' }}
+        # Argomenti opzionali in un array bash: nessuna variabile non quotata
+        # (shellcheck SC2086, segnalato da actionlint nella lezione 11).
         run: |
-          gh release create "$TAG" "$FILE" \
-            --title "Release $TAG" \
-            --generate-notes \
-            $DRAFT
+          ARGS=(--title "Release $TAG" --generate-notes)
+          if [ "$PROVA" = "true" ]; then ARGS+=(--draft); fi
+          gh release create "$TAG" "$FILE" "${ARGS[@]}"
 
       - name: Riepilogo
         run: |

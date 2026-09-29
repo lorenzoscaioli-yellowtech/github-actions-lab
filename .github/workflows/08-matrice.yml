@@ -1,0 +1,67 @@
+# Lezione 08 - Matrici
+#
+# Un solo job definito, N job eseguiti: uno per ogni combinazione dei valori
+# in `strategy.matrix`. Qui 3 versioni di Node x 3 sistemi operativi,
+# meno un'esclusione, più una combinazione extra "sperimentale".
+
+name: 08 - Matrice
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ["app/**", ".github/workflows/08-matrice.yml"]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    # Il nome del job usa i valori della matrice: nella UI si legge
+    # "test (Node 22, windows-latest)".
+    name: test (Node ${{ matrix.node }}, ${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      # fail-fast: true (default) cancella tutti i job della matrice appena uno
+      # fallisce. false: li lascia finire, così vedi TUTTE le combinazioni rotte.
+      fail-fast: false
+      # Quanti job della matrice possono girare contemporaneamente.
+      max-parallel: 4
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        node: ["20", "22", "24"]
+        # exclude: toglie combinazioni dal prodotto cartesiano.
+        exclude:
+          - os: macos-latest
+            node: "20"
+        # include: aggiunge combinazioni (o variabili a quelle esistenti).
+        # Questa ha una variabile in più, `sperimentale`.
+        include:
+          - os: ubuntu-latest
+            node: latest
+            sperimentale: true
+
+    # Solo le combinazioni sperimentali possono fallire senza rendere rosso
+    # il run: il job risulta fallito, ma il workflow resta verde.
+    continue-on-error: ${{ matrix.sperimentale == true }}
+
+    # bash anche su Windows (Git Bash è preinstallato sui runner Windows).
+    # Senza, su Windows la shell di default è PowerShell.
+    defaults:
+      run:
+        shell: bash
+        working-directory: app
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-app
+        with:
+          node-version: ${{ matrix.node }}
+      - run: npm test
+
+      - name: Simulo un'incompatibilità sulla combinazione sperimentale
+        if: matrix.sperimentale
+        run: |
+          echo "::warning::Node $(node --version) non ancora supportato ufficialmente"
+          exit 1
