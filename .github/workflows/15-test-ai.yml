@@ -1,0 +1,152 @@
+# Lezione 15 - Test generati dall'AI sulle modifiche del codice
+#
+# Su ogni PR che tocca app/src:
+#   1. `genera`: manda il diff a Gemini, che scrive test ad hoc per il codice
+#      nuovo o modificato;
+#   2. `esegui`: esegue quei test contro il codice della PR;
+#   3. `commenta`: pubblica sulla PR i casi proposti e l'esito.
+#
+# Tre job separati per sicurezza (lezione 11):
+# - solo `genera` vede la chiave API, e non esegue codice;
+# - `esegui` esegue codice scritto da un modello a partire da un diff non
+#   fidato: niente segreti, token in sola lettura;
+# - solo `commenta` può scrivere sulla PR, e non esegue codice.
+#
+# Prerequisito: gh secret set GEMINI_API_KEY   (chiave da aistudio.google.com)
+# Opzionale:    gh variable set GEMINI_MODEL --body <modello>
+
+name: 15 - Test generati con Gemini
+
+on:
+  pull_request:
+    branches: [main]
+    paths: ["app/src/**"]
+  workflow_dispatch:
+    inputs:
+      base:
+        description: "Confronta HEAD con questo ref (es. HEAD~1, un tag, origin/main)"
+        type: string
+        default: HEAD~1
+
+permissions: {}
+
+# Nuovi push sulla stessa PR cancellano la generazione in corso (lezione 13):
+# ogni chiamata costa token.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  genera:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    outputs:
+      salta: ${{ steps.gemini.outputs.salta }}
+    defaults:
+      run:
+        working-directory: app
+        shell: bash
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          # Serve la storia per calcolare il diff con la base.
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+
+      - name: Chiedo i test a Gemini
+        id: gemini
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GEMINI_MODEL: ${{ vars.GEMINI_MODEL }}
+          # Su una PR la base è il branch di destinazione; a mano, l'input.
+          BASE_REF: ${{ github.event_name == 'pull_request' && format('origin/{0}', github.base_ref) || inputs.base }}
+        run: node ../.github/scripts/genera-test-ai.mjs
+
+      - if: steps.gemini.outputs.salta == 'false'
+        uses: actions/upload-artifact@v7
+        with:
+          name: test-ai
+          path: |
+            app/test/ai/generated.test.js
+            app/ai-report.json
+          retention-days: 7
+
+  esegui:
+    needs: genera
+    if: needs.genera.outputs.salta == 'false'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    outputs:
+      esito: ${{ steps.test.outputs.esito }}
+    defaults:
+      run:
+        working-directory: app
+        shell: bash
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup-app
+
+      - uses: actions/download-artifact@v7
+        with:
+          name: test-ai
+          path: app
+
+      # Il job fallisce se un test generato fallisce: è il segnale che la PR
+      # potrebbe avere un bug. Il report viene comunque prodotto (always()).
+      - name: Eseguo i test generati
+        id: test
+        run: |
+          set +e
+          node --test --test-reporter=spec test/ai/generated.test.js 2>&1 | tee risultato.txt
+          codice=${PIPESTATUS[0]}
+          if [ "$codice" -eq 0 ]; then echo "esito=superati" >> "$GITHUB_OUTPUT"; else echo "esito=falliti" >> "$GITHUB_OUTPUT"; fi
+          exit "$codice"
+
+      - name: Preparo il report
+        if: always()
+        run: |
+          {
+            echo "## Test generati con Gemini"
+            echo ""
+            jq -r '"**Modello:** `\(.modello)` · **Base:** `\(.base)`\n\n\(.riepilogo)\n\n**Casi proposti**\n" + (.casi | map("- **\(.nome)**: \(.motivo)") | join("\n"))' ai-report.json
+            echo ""
+            echo "**Risultato**"
+            echo '```'
+            grep -E "^(✔|✖|ℹ (tests|pass|fail))" risultato.txt || tail -20 risultato.txt
+            echo '```'
+          } > report.md
+          cat report.md >> "$GITHUB_STEP_SUMMARY"
+
+      - if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: report-ai
+          path: app/report.md
+          retention-days: 7
+
+  commenta:
+    needs: [genera, esegui]
+    # Commenta anche se i test sono falliti, ma solo sulle PR.
+    if: always() && github.event_name == 'pull_request' && needs.genera.outputs.salta == 'false'
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    steps:
+      - uses: actions/download-artifact@v7
+        with:
+          name: report-ai
+      # Un solo commento per PR, aggiornato a ogni push invece di accumularne.
+      - name: Commento sulla PR
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+          REPO: ${{ github.repository }}
+        run: |
+          gh pr comment "$PR" --repo "$REPO" --body-file report.md --edit-last --create-if-none
