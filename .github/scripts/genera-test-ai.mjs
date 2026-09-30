@@ -3,6 +3,9 @@
 // Input (variabili d'ambiente):
 //   GEMINI_API_KEY  chiave API di Google AI Studio (segreto)
 //   GEMINI_MODEL    modello da usare (default: gemini-3.8-flash)
+//   GEMINI_FALLBACK modelli di riserva separati da virgola, provati in ordine
+//                   se il principale resta sovraccarico
+//                   (default: gemini-3.7-flash,gemini-3.5-flash)
 //   BASE_REF        commit/branch di confronto (es. origin/main)
 // Output (nella cartella corrente, cioè app/):
 //   test/ai/generated.test.js  il file di test generato
@@ -16,7 +19,12 @@ import { appendFileSync, mkdirSync, readFileSync, writeFileSync, existsSync } fr
 import { dirname } from "node:path";
 
 const { GEMINI_API_KEY, BASE_REF = "origin/main", GITHUB_OUTPUT } = process.env;
-const MODEL = process.env.GEMINI_MODEL || "gemini-3.8-flash";
+const MODELLI = [
+  process.env.GEMINI_MODEL || "gemini-3.8-flash",
+  ...(process.env.GEMINI_FALLBACK || "gemini-3.7-flash,gemini-3.5-flash").split(","),
+]
+  .map((m) => m.trim())
+  .filter((m, i, lista) => m && lista.indexOf(m) === i);
 const API = "https://generativelanguage.googleapis.com/v1beta";
 
 const out = (k, v) => GITHUB_OUTPUT && appendFileSync(GITHUB_OUTPUT, `${k}=${v}\n`);
@@ -36,7 +44,9 @@ if (!diff.trim()) {
   process.exit(0);
 }
 if (!GEMINI_API_KEY) {
-  console.error("::error::Segreto GEMINI_API_KEY mancante. Crealo con: gh secret set GEMINI_API_KEY");
+  console.error(
+    "::error::Segreto GEMINI_API_KEY mancante. Crealo con: gh secret set GEMINI_API_KEY",
+  );
   process.exit(1);
 }
 
@@ -107,17 +117,31 @@ const body = {
 //    migliorano riprovando, quindi si esce subito.
 const TEMPORANEI = new Set([429, 500, 503]);
 const ATTESE = [5, 15, 30]; // secondi prima del 2°, 3° e 4° tentativo
+
+async function chiama(modello) {
+  for (let tentativo = 1; ; tentativo++) {
+    const r = await fetch(`${API}/models/${modello}:generateContent`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-goog-api-key": GEMINI_API_KEY },
+      body: JSON.stringify(body),
+    });
+    if (!TEMPORANEI.has(r.status) || tentativo > ATTESE.length) return r;
+    const attesa = ATTESE[tentativo - 1];
+    console.log(
+      `::warning::${modello} ha risposto ${r.status} (tentativo ${tentativo}), riprovo tra ${attesa}s`,
+    );
+    await new Promise((ok) => setTimeout(ok, attesa * 1000));
+  }
+}
+
+// Piano B: se un modello resta sovraccarico anche dopo i tentativi, si passa
+// al successivo della lista. Un errore non temporaneo (es. 404) ferma tutto.
 let risposta;
-for (let tentativo = 1; ; tentativo++) {
-  risposta = await fetch(`${API}/models/${MODEL}:generateContent`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", "x-goog-api-key": GEMINI_API_KEY },
-    body: JSON.stringify(body),
-  });
-  if (!TEMPORANEI.has(risposta.status) || tentativo > ATTESE.length) break;
-  const attesa = ATTESE[tentativo - 1];
-  console.log(`::warning::Gemini ha risposto ${risposta.status} (tentativo ${tentativo}), riprovo tra ${attesa}s`);
-  await new Promise((r) => setTimeout(r, attesa * 1000));
+let MODEL;
+for (MODEL of MODELLI) {
+  risposta = await chiama(MODEL);
+  if (!TEMPORANEI.has(risposta.status)) break;
+  console.log(`::warning::${MODEL} non disponibile, passo al modello di riserva successivo`);
 }
 
 if (!risposta.ok) {
@@ -154,7 +178,11 @@ mkdirSync(dirname(percorso), { recursive: true });
 writeFileSync(percorso, risultato.codice);
 writeFileSync(
   "ai-report.json",
-  JSON.stringify({ modello: MODEL, base: BASE_REF, fileCambiati, ...risultato, codice: undefined }, null, 2),
+  JSON.stringify(
+    { modello: MODEL, base: BASE_REF, fileCambiati, ...risultato, codice: undefined },
+    null,
+    2,
+  ),
 );
 
 console.log(`Modello: ${MODEL}`);

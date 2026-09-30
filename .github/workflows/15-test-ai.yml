@@ -14,6 +14,7 @@
 #
 # Prerequisito: gh secret set GEMINI_API_KEY   (chiave da aistudio.google.com)
 # Opzionale:    gh variable set GEMINI_MODEL --body <modello>
+#               gh variable set GEMINI_FALLBACK --body <modello>,<modello>
 
 name: 15 - Test generati con Gemini
 
@@ -63,6 +64,7 @@ jobs:
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           GEMINI_MODEL: ${{ vars.GEMINI_MODEL }}
+          GEMINI_FALLBACK: ${{ vars.GEMINI_FALLBACK }}
           # Su una PR la base è il branch di destinazione; a mano, l'input.
           BASE_REF: ${{ github.event_name == 'pull_request' && format('origin/{0}', github.base_ref) || inputs.base }}
         run: node ../.github/scripts/genera-test-ai.mjs
