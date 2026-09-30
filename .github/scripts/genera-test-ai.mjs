@@ -2,7 +2,7 @@
 //
 // Input (variabili d'ambiente):
 //   GEMINI_API_KEY  chiave API di Google AI Studio (segreto)
-//   GEMINI_MODEL    modello da usare (default: gemini-2.5-flash)
+//   GEMINI_MODEL    modello da usare (default: gemini-3.8-flash)
 //   BASE_REF        commit/branch di confronto (es. origin/main)
 // Output (nella cartella corrente, cioè app/):
 //   test/ai/generated.test.js  il file di test generato
@@ -16,7 +16,7 @@ import { appendFileSync, mkdirSync, readFileSync, writeFileSync, existsSync } fr
 import { dirname } from "node:path";
 
 const { GEMINI_API_KEY, BASE_REF = "origin/main", GITHUB_OUTPUT } = process.env;
-const MODEL = process.env.GEMINI_MODEL || "gemini-2.5-flash";
+const MODEL = process.env.GEMINI_MODEL || "gemini-3.8-flash";
 const API = "https://generativelanguage.googleapis.com/v1beta";
 
 const out = (k, v) => GITHUB_OUTPUT && appendFileSync(GITHUB_OUTPUT, `${k}=${v}\n`);
@@ -102,11 +102,23 @@ const body = {
 
 // 3) Chiamata REST a Gemini. La chiave va nell'header, non nell'URL, così non
 //    finisce in eventuali log delle richieste.
-const risposta = await fetch(`${API}/models/${MODEL}:generateContent`, {
-  method: "POST",
-  headers: { "Content-Type": "application/json", "x-goog-api-key": GEMINI_API_KEY },
-  body: JSON.stringify(body),
-});
+//    Errori temporanei (429 troppe richieste, 500/503 servizio sovraccarico):
+//    si riprova con attesa crescente. Gli altri errori (400, 401, 404) non
+//    migliorano riprovando, quindi si esce subito.
+const TEMPORANEI = new Set([429, 500, 503]);
+const ATTESE = [5, 15, 30]; // secondi prima del 2°, 3° e 4° tentativo
+let risposta;
+for (let tentativo = 1; ; tentativo++) {
+  risposta = await fetch(`${API}/models/${MODEL}:generateContent`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "x-goog-api-key": GEMINI_API_KEY },
+    body: JSON.stringify(body),
+  });
+  if (!TEMPORANEI.has(risposta.status) || tentativo > ATTESE.length) break;
+  const attesa = ATTESE[tentativo - 1];
+  console.log(`::warning::Gemini ha risposto ${risposta.status} (tentativo ${tentativo}), riprovo tra ${attesa}s`);
+  await new Promise((r) => setTimeout(r, attesa * 1000));
+}
 
 if (!risposta.ok) {
   const testo = await risposta.text();

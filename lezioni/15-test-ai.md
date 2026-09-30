@@ -38,12 +38,16 @@ File: `.github/workflows/15-test-ai.yml`, `.github/scripts/genera-test-ai.mjs`
    gh secret set GEMINI_API_KEY
    ```
 
-3. Facoltativo: scegliere il modello. Il default è `gemini-2.5-flash`. Se il
-   modello non esiste più, il log elenca quelli disponibili.
+3. Facoltativo: scegliere il modello con una variabile del repo. Il default
+   nello script è `gemini-3.8-flash`. Se il modello non esiste più, il log
+   elenca quelli disponibili.
 
    ```bash
-   gh variable set GEMINI_MODEL --body gemini-2.5-flash
+   gh variable set GEMINI_MODEL --body gemini-3.8-flash
    ```
+
+   Meglio un nome preciso che un alias come `gemini-flash-latest`: l'alias
+   può cambiare modello da un giorno all'altro, come un tag mobile (lezione 11).
 
 ## Come lanciarla
 
