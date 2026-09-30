@@ -1,2 +1,6 @@
 app/node_modules/
 app/dist/
+
+# Chiavi locali (es. GEMINI_API_KEY per provare la lezione 15): mai nel repo
+.env
+.env.*
