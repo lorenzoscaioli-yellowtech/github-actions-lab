@@ -8,3 +8,11 @@ export function dividi(a, b) {
   }
   return a / b;
 }
+
+export function media(numeri) {
+  let totale = 0;
+  for (const n of numeri) {
+    totale += n;
+  }
+  return totale / numeri.length;
+}
