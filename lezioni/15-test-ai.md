@@ -85,4 +85,35 @@ lezione è se i test generati da Gemini se ne accorgono.
 
 ## Note dopo l'esecuzione
 
-_(da compilare)_
+30/09/2026, PR #4. Per arrivare al primo run riuscito ci sono voluti tre
+aggiustamenti, tutti tipici delle integrazioni con un'API AI.
+
+1. **Modello ritirato.** Il default iniziale `gemini-2.5-flash` ha risposto
+   404: "no longer available to new users, use gemini-3.8-flash". Lo script
+   ha stampato l'elenco dei modelli disponibili ed è bastato impostare
+   `GEMINI_MODEL`. Morale: il nome del modello è una dipendenza che invecchia
+   e va tenuto in una variabile, non scolpito nel codice.
+2. **Sovraccarico.** `gemini-3.8-flash` ha risposto 503 "high demand" più volte
+   di fila. Ho aggiunto tentativi con attesa crescente di 5, 15 e 30 secondi
+   su 429, 500 e 503, più una lista di modelli di riserva (`GEMINI_FALLBACK`).
+   Al run successivo è bastato il secondo tentativo.
+3. **Rerun e codice vecchio.** `gh run rerun` su una PR riusa lo stesso merge
+   commit, quindi anche il vecchio script. Per provare una correzione fatta su
+   `main` bisogna aggiornare il branch della PR con rebase e push.
+
+**Il risultato.**
+
+- Primo run: Gemini ha proposto 5 casi. Il caso "gestisce un array vuoto" è
+  fallito, perché `media([])` restituiva `NaN`. **Il bug voluto è stato
+  trovato**, mentre la CI normale e il `gate` erano verdi.
+- Correzione sulla PR, con un errore esplicito su array vuoto: nuovo run con
+  5 test su 5 verdi. Il commento sulla PR è stato aggiornato, non duplicato.
+- I due run hanno generato test **diversi** per lo stesso codice: nomi,
+  valori e ordine cambiano. Il non determinismo si vede subito.
+- Il test sull'array vuoto del primo run si aspettava un messaggio che
+  contenesse "vuoto" o "non valido". Nessuno l'aveva deciso: l'ha inventato
+  il modello. Il messaggio scelto nella correzione lo soddisfa per caso. Un
+  messaggio diverso, per esempio "empty array", avrebbe fatto fallire un test
+  su codice corretto. È il limite principale: il test rosso va letto.
+- Costo di una generazione: circa 1.500 token, di cui 700 di prompt, 570 di
+  risposta e 230 di "ragionamento" del modello. Durata del job circa 10 secondi.
