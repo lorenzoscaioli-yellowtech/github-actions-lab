@@ -42,6 +42,7 @@ lint, release, automazione. Le successive coprono i meccanismi trasversali.
 | 12 | [Check obbligatori sulle PR](lezioni/12-pr-gate.md) | Ruleset su main, job `gate` con `if: always()`, bypass admin | eseguita |
 | 13 | [Concurrency e timeout](lezioni/13-concurrency.md) | `cancel-in-progress`, gruppi per ref, `timeout-minutes` | eseguita |
 | 14 | [Debug](lezioni/14-debug.md) | Comandi di workflow, dump dei contesti, `rerun --debug`, `act` | eseguita (act da riprovare con Docker) |
+| 15 | [Test generati con Gemini](lezioni/15-test-ai.md) | Chiamata a un'API AI, output strutturato, test ad hoc dal diff, job separati per segreti ed esecuzione | in attesa della chiave API |
 
 Fuori percorso, perché richiedono infrastruttura esterna: deploy su GHCR e
 via SSH, OIDC verso un cloud, runner self-hosted.
